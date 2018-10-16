@@ -82,3 +82,8 @@
   ([cli-args opts]
    (let [args (filter some? cli-args)]
      (spawn-sync-jvm (map str args) opts))))
+
+(defn sh-inherit
+  ([cli-args] (sh-inherit cli-args nil))
+  ([cli-args opts]
+   (sh cli-args (merge {:redirect :inherit} opts))))
