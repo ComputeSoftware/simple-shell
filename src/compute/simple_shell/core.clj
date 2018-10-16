@@ -36,6 +36,8 @@
   (when (and message (not (str/blank? message)))
     (binding [*out* (if (= 0 status) *out* *err*)]
       (println message)))
+  ;; ensures all pending prints are flushed
+  (flush)
   (System/exit status))
 
 (defn exit!
