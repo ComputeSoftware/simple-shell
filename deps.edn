@@ -1,4 +1,4 @@
 {:paths   ["src"]
  :deps    {provisdom/threadolet {:git/url "git@github.com:Provisdom/threadolet.git"
-                                 :sha     "2e0cc863ac89611853e08733d74d5c7c02384cc6"}}
+                                 :sha     "607b3d55bd7a6a8ac2cd0b8dd819f428393ceb6d"}}
  :aliases {:test {:extra-paths ["test"]}}}

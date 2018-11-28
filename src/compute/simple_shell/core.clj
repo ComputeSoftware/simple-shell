@@ -2,7 +2,7 @@
   (:require
     [clojure.string :as str]
     [clojure.java.io :as io]
-    [compute.threadolet :as threadolet])
+    [provisdom.threadolet :as threadolet])
   (:import (java.lang ProcessBuilder$Redirect)))
 
 (defn exit?
