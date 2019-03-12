@@ -51,7 +51,7 @@
 
 
 (defn make-process-builder
-  [args {:keys [redirect dir]}]
+  [args {:keys [redirect dir environment]}]
   (let [redirect (cond
                    (or (map? redirect) (nil? redirect)) (merge {:input :pipe :output :pipe :error :pipe} redirect)
                    (keyword? redirect) {:input redirect :output redirect :error redirect})
@@ -67,6 +67,9 @@
     ;; set cwd
     (when dir
       (.directory builder (io/file dir)))
+    ;; set the environment
+    (let [proc-env (.environment builder)]
+      (.putAll proc-env (or environment {})))
     builder))
 
 ;; we need to write our own shell function instead of Clojure's because of
