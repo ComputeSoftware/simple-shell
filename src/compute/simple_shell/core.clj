@@ -28,7 +28,7 @@
          ok? (= status 0)]
      (cond-> {::status status
               ::ok?    ok?}
-             msg (assoc ::message msg)))))
+       msg (assoc ::message msg)))))
 
 (defn system-exit!
   "Exit the process."
@@ -50,34 +50,38 @@
   (threadolet/let-template (partial threadolet/short-circuit failed?) bindings body))
 
 
+(defn make-process-builder
+  [args {:keys [redirect dir]}]
+  (let [redirect (cond
+                   (or (map? redirect) (nil? redirect)) (merge {:input :pipe :output :pipe :error :pipe} redirect)
+                   (keyword? redirect) {:input redirect :output redirect :error redirect})
+        builder (ProcessBuilder. ^"[Ljava.lang.String;" (into-array String args))
+        do-redirect* (fn [redirect-fn redirect-type]
+                       (case redirect-type
+                         :pipe (redirect-fn builder ProcessBuilder$Redirect/PIPE)
+                         :inherit (redirect-fn builder ProcessBuilder$Redirect/INHERIT)))]
+    ;; redirect stdio
+    (do-redirect* (memfn redirectInput redirect-type) (:input redirect))
+    (do-redirect* (memfn redirectOutput redirect-type) (:output redirect))
+    (do-redirect* (memfn redirectError redirect-type) (:error redirect))
+    ;; set cwd
+    (when dir
+      (.directory builder (io/file dir)))
+    builder))
+
 ;; we need to write our own shell function instead of Clojure's because of
 ;; https://dev.clojure.org/jira/browse/CLJ-959
 (defn spawn-sync-jvm
   ([args] (spawn-sync-jvm args nil))
-  ([args {:keys [redirect dir]}]
-   (let [redirect (cond
-                    (or (map? redirect) (nil? redirect)) (merge {:input :pipe :output :pipe :error :pipe} redirect)
-                    (keyword? redirect) {:input redirect :output redirect :error redirect})
-         builder (ProcessBuilder. ^"[Ljava.lang.String;" (into-array String args))
-         do-redirect* (fn [redirect-fn redirect-type]
-                        (case redirect-type
-                          :pipe (redirect-fn builder ProcessBuilder$Redirect/PIPE)
-                          :inherit (redirect-fn builder ProcessBuilder$Redirect/INHERIT)))]
-     ;; redirect stdio
-     (do-redirect* (memfn redirectInput redirect-type) (:input redirect))
-     (do-redirect* (memfn redirectOutput redirect-type) (:output redirect))
-     (do-redirect* (memfn redirectError redirect-type) (:error redirect))
-     ;; set cwd
-     (when dir
-       (.directory builder (io/file dir)))
-     ;; start the process
-     (let [proc (.start builder)]
-       (with-open [stdout (.getInputStream proc)
-                   stderr (.getErrorStream proc)]
-         (let [status (.waitFor proc)]
-           {::status status
-            ::out    (str/trim-newline (slurp stdout))
-            ::err    (slurp stderr)}))))))
+  ([args opts]
+   (let [builder (make-process-builder args opts)
+         proc (.start builder)]
+     (with-open [stdout (.getInputStream proc)
+                 stderr (.getErrorStream proc)]
+       (let [status (.waitFor proc)]
+         {::status status
+          ::out    (str/trim-newline (slurp stdout))
+          ::err    (slurp stderr)})))))
 
 (defn sh
   ([cli-args] (sh cli-args nil))
